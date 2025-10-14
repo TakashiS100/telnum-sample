@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>異なるWindowメッセージIDのダイアログ表示デモ</title>
+  <style>
+    :root{
+      --bg:#fff;--fg:#111;--muted:#666;--primary:#2563eb;--primary-weak:#e5efff;--border:#e5e7eb;--shadow:0 10px 30px rgba(0,0,0,.15);
+      --radius:16px;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{--bg:#0b0f14;--fg:#e6ebf2;--muted:#9aa7b4;--primary:#60a5fa;--primary-weak:#0b1c38;--border:#1f2937;}
+      body{background:#0b0f14;}
+    }
+    *{box-sizing:border-box}
+    body{
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans JP, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      margin:0; color:var(--fg); background:linear-gradient(180deg, var(--primary-weak) 0%, transparent 40%);
+      min-height:100svh; display:grid; place-items:center; padding:32px;
+    }
+    .card{
+      width:min(840px, 100%);
+      background:var(--bg); border:1px solid var(--border); border-radius:var(--radius);
+      box-shadow:var(--shadow); padding:28px;
+    }
+    h1{font-size:clamp(18px,2.6vw,24px); margin:0 0 8px}
+    p.lead{margin:0 0 20px; color:var(--muted)}
+    .btn-row{display:flex; gap:12px; flex-wrap:wrap}
+    .btn{
+      appearance:none; border:none; border-radius:999px; padding:12px 18px; font-weight:600; cursor:pointer;
+      transition:transform .05s ease, box-shadow .2s ease, background .2s ease;
+      box-shadow:0 2px 0 rgba(0,0,0,.08);
+    }
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{background:var(--primary); color:#fff}
+    .btn.ghost{background:transparent; color:var(--primary); border:1px solid var(--border)}
+    .btn.neutral{background:#f3f4f6; color:#111}
+    @media (prefers-color-scheme: dark){
+      .btn.neutral{background:#111827; color:#e5e7eb}
+    }
+
+    dialog{
+      border:none; padding:0; border-radius:calc(var(--radius) + 4px); background:var(--bg); color:var(--fg);
+      box-shadow:var(--shadow); width:min(560px, 92vw);
+      opacity:0; transform:translateY(10px) scale(.98);
+      transition:opacity .14s ease, transform .14s ease;
+    }
+    dialog[open]{opacity:1; transform:translateY(0) scale(1)}
+    dialog::backdrop{background:rgba(0,0,0,.45); backdrop-filter:saturate(120%) blur(2px)}
+    .dlg-header{
+      display:flex; align-items:center; gap:10px; padding:18px 20px 12px;
+      border-bottom:1px solid var(--border);
+    }
+    .badge{
+      font:600 12px/1 system-ui; padding:6px 10px; border-radius:999px; background:var(--primary-weak); color:var(--primary);
+      border:1px solid var(--border);
+    }
+    .dlg-title{margin:0; font-size:18px}
+    .dlg-body{padding:18px 20px; display:grid; gap:12px}
+    .kv{display:grid; grid-template-columns:140px 1fr; gap:10px 14px; align-items:start}
+    .kv dt{color:var(--muted)}
+    .kv dd{margin:0; word-break:break-word}
+    code, pre{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+    pre{margin:0; padding:12px; background:#0b1020; color:#e6ebf2; border-radius:12px; overflow:auto}
+    @media (prefers-color-scheme: light){
+      pre{background:#0f172a;color:#e5e7eb}
+    }
+    .dlg-footer{
+      display:flex; justify-content:flex-end; gap:8px; padding:16px 20px 20px; border-top:1px solid var(--border)
+    }
+    .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0}
+  </style>
+</head>
+<body>
+  <main class="card" role="main">
+    <h1>2つのダイアログを別ボタンで表示（メッセージID別）</h1>
+    <p class="lead">各ボタンを押すと、それぞれ <strong>異なる Window メッセージID</strong> を持つダイアログを表示します。</p>
+
+    <div class="btn-row" aria-label="ダイアログを開く操作">
+      <button class="btn primary" data-open="dlg-1001" aria-haspopup="dialog" aria-controls="dlg-1001">
+        ダイアログA（ID: 0x0401）を開く
+      </button>
+      <button class="btn ghost" data-open="dlg-1002" aria-haspopup="dialog" aria-controls="dlg-1002">
+        ダイアログB（ID: 0x0402）を開く
+      </button>
+    </div>
+  </main>
+
+  <!-- ダイアログA: メッセージID 0x0401 (例: WM_USER + 1) -->
+  <dialog id="dlg-1001" aria-labelledby="title-1001" aria-describedby="desc-1001" data-message-id="0x0401">
+    <div class="dlg-header">
+      <span class="badge">Message ID: 0x0401</span>
+      <h2 id="title-1001" class="dlg-title">ダイアログA</h2>
+    </div>
+    <div class="dlg-body">
+      <p id="desc-1001">このダイアログは、<code>0x0401</code>（例: <code>WM_USER + 1</code>）のウィンドウメッセージに対応する想定メッセージを表示します。</p>
+
+      <dl class="kv" aria-label="詳細">
+        <dt>用途</dt><dd>処理Aの完了通知 / 軽微な成功メッセージ</dd>
+        <dt>推奨アクション</dt><dd>OK で閉じる、または Esc キーで閉じる</dd>
+        <dt>受信例（擬似コード）</dt>
+        <dd>
+          <pre><code>// Windows アプリ側（例）
+switch (msg) {
+  case 0x0401: // WM_USER + 1
+    ShowDialog("処理Aが完了しました。");
+    break;
+}</code></pre>
+        </dd>
+      </dl>
+    </div>
+    <form method="dialog" class="dlg-footer">
+      <button class="btn neutral" value="cancel" data-close>キャンセル</button>
+      <button class="btn primary" value="ok" data-close>OK</button>
+    </form>
+  </dialog>
+
+  <!-- ダイアログB: メッセージID 0x0402 (例: WM_USER + 2) -->
+  <dialog id="dlg-1002" aria-labelledby="title-1002" aria-describedby="desc-1002" data-message-id="0x0402">
+    <div class="dlg-header">
+      <span class="badge">Message ID: 0x0402</span>
+      <h2 id="title-1002" class="dlg-title">ダイアログB</h2>
+    </div>
+    <div class="dlg-body">
+      <p id="desc-1002">このダイアログは、<code>0x0402</code>（例: <code>WM_USER + 2</code>）のウィンドウメッセージに対応する想定メッセージを表示します。</p>
+
+      <dl class="kv" aria-label="詳細">
+        <dt>用途</dt><dd>確認が必要な通知 / 選択を促すメッセージ</dd>
+        <dt>推奨アクション</dt><dd>OK で確定、キャンセルで中断、Esc でも閉じられます</dd>
+        <dt>受信例（擬似コード）</dt>
+        <dd>
+          <pre><code>// Windows アプリ側（例）
+switch (msg) {
+  case 0x0402: // WM_USER + 2
+    ShowConfirmDialog("次のステップへ進みますか？");
+    break;
+}</code></pre>
+        </dd>
+      </dl>
+    </div>
+    <form method="dialog" class="dlg-footer">
+      <button class="btn neutral" value="cancel" data-close>キャンセル</button>
+      <button class="btn primary" value="ok" data-close>OK</button>
+    </form>
+  </dialog>
+
+  <script>
+    // ボタン→該当ダイアログを開く
+    document.querySelectorAll('[data-open]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = btn.getAttribute('data-open');
+        const dlg = document.getElementById(id);
+        if(!dlg) return;
+        dlg.showModal();
+        // 初期フォーカス（OKボタンへ）
+        dlg.querySelector('form [value="ok"]')?.focus();
+      });
+    });
+
+    // ダイアログ内の [data-close] で閉じる
+    document.querySelectorAll('dialog').forEach(dlg=>{
+      dlg.addEventListener('click', (e)=>{
+        // 背景（バックドロップ）クリックで閉じる
+        const rect = dlg.getBoundingClientRect();
+        const inDialog = (
+          e.clientX >= rect.left && e.clientX <= rect.right &&
+          e.clientY >= rect.top  && e.clientY <= rect.bottom
+        );
+        if (!inDialog) dlg.close('backdrop');
+      });
+      dlg.querySelectorAll('[data-close]').forEach(el=>{
+        el.addEventListener('click', ()=> dlg.close(el.value || 'close'));
+      });
+      // 送信結果のログ（必要なら削除）
+      dlg.addEventListener('close', ()=>{
+        console.log(`Dialog ${dlg.id} closed with returnValue="${dlg.returnValue}" (MessageID=${dlg.dataset.messageId})`);
+      });
+    });
+  </script>
+</body>
+</html>
